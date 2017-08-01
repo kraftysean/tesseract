@@ -22,6 +22,7 @@
 
 #include <stdio.h>
 #ifdef _WIN32
+#include <windows.h>
 struct addrinfo {
   struct sockaddr* ai_addr;
   int ai_addrlen;
@@ -31,13 +32,14 @@ struct addrinfo {
 };
 #else
 #include <arpa/inet.h>
+#include <netdb.h>
 #include <netinet/in.h>
 #include <pthread.h>
 #include <semaphore.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <string.h>
-#include <netdb.h>
+#include <sys/select.h>
 #include <sys/socket.h>
 #ifdef __linux__
 #include <sys/prctl.h>
@@ -55,11 +57,54 @@ struct addrinfo {
 #include "config_auto.h"
 #endif
 
-#ifndef GRAPHICS_DISABLED
-
 #include "svutil.h"
 
-const int kBufferSize = 65536;
+SVMutex::SVMutex() {
+#ifdef _WIN32
+  mutex_ = CreateMutex(0, FALSE, 0);
+#else
+  pthread_mutex_init(&mutex_, NULL);
+#endif
+}
+
+void SVMutex::Lock() {
+#ifdef _WIN32
+  WaitForSingleObject(mutex_, INFINITE);
+#else
+  pthread_mutex_lock(&mutex_);
+#endif
+}
+
+void SVMutex::Unlock() {
+#ifdef _WIN32
+  ReleaseMutex(mutex_);
+#else
+  pthread_mutex_unlock(&mutex_);
+#endif
+}
+
+// Create new thread.
+void SVSync::StartThread(void* (*func)(void*), void* arg) {
+#ifdef _WIN32
+  LPTHREAD_START_ROUTINE f = (LPTHREAD_START_ROUTINE)func;
+  DWORD threadid;
+  HANDLE newthread = CreateThread(NULL,        // default security attributes
+                                  0,           // use default stack size
+                                  f,           // thread function
+                                  arg,         // argument to thread function
+                                  0,           // use default creation flags
+                                  &threadid);  // returns the thread identifier
+#else
+  pthread_t helper;
+  pthread_attr_t attr;
+  pthread_attr_init(&attr);
+  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+  pthread_create(&helper, &attr, func, arg);
+#endif
+}
+
+#ifndef GRAPHICS_DISABLED
+
 const int kMaxMsgSize = 4096;
 
 // Signals a thread to exit.
@@ -118,6 +163,9 @@ void SVSync::StartProcess(const char* executable, const char* args) {
     }
     argv[argc] = NULL;
     execvp(executable, argv);
+    free(argv[0]);
+    free(argv[1]);
+    delete[] argv;
   }
 #endif
 }
@@ -127,7 +175,7 @@ SVSemaphore::SVSemaphore() {
   semaphore_ = CreateSemaphore(0, 0, 10, 0);
 #elif defined(__APPLE__)
   char name[50];
-  snprintf(name, sizeof(name), "%d", random());
+  snprintf(name, sizeof(name), "%ld", random());
   sem_unlink(name);
   semaphore_ = sem_open(name, O_CREAT , S_IWUSR, 0);
   if (semaphore_ == SEM_FAILED) {
@@ -158,64 +206,21 @@ void SVSemaphore::Wait() {
 #endif
 }
 
-SVMutex::SVMutex() {
-#ifdef _WIN32
-  mutex_ = CreateMutex(0, FALSE, 0);
-#else
-  pthread_mutex_init(&mutex_, NULL);
-#endif
-}
-
-void SVMutex::Lock() {
-#ifdef _WIN32
-  WaitForSingleObject(mutex_, INFINITE);
-#else
-  pthread_mutex_lock(&mutex_);
-#endif
-}
-
-void SVMutex::Unlock() {
-#ifdef _WIN32
-  ReleaseMutex(mutex_);
-#else
-  pthread_mutex_unlock(&mutex_);
-#endif
-}
-
-// Create new thread.
-
-void SVSync::StartThread(void *(*func)(void*), void* arg) {
-#ifdef _WIN32
-  LPTHREAD_START_ROUTINE f = (LPTHREAD_START_ROUTINE) func;
-  DWORD threadid;
-  HANDLE newthread = CreateThread(
-  NULL,          // default security attributes
-  0,             // use default stack size
-  f,             // thread function
-  arg,           // argument to thread function
-  0,             // use default creation flags
-  &threadid);    // returns the thread identifier
-#else
-  pthread_t helper;
-  pthread_create(&helper, NULL, func, arg);
-#endif
-}
-
 // Place a message in the message buffer (and flush it).
 void SVNetwork::Send(const char* msg) {
-  mutex_send_->Lock();
+  mutex_send_.Lock();
   msg_buffer_out_.append(msg);
-  mutex_send_->Unlock();
+  mutex_send_.Unlock();
 }
 
 // Send the whole buffer.
 void SVNetwork::Flush() {
-  mutex_send_->Lock();
-  while (msg_buffer_out_.size() > 0) {
+  mutex_send_.Lock();
+  while (!msg_buffer_out_.empty()) {
     int i = send(stream_, msg_buffer_out_.c_str(), msg_buffer_out_.length(), 0);
     msg_buffer_out_.erase(0, i);
   }
-  mutex_send_->Unlock();
+  mutex_send_.Unlock();
 }
 
 // Receive a message from the server.
@@ -296,14 +301,12 @@ static std::string ScrollViewCommand(std::string scrollview_path) {
   // this unnecessary.
   // Also the path has to be separated by ; on windows and : otherwise.
 #ifdef _WIN32
-  const char* cmd_template = "-Djava.library.path=%s -cp %s/ScrollView.jar;"
-      "%s/piccolo2d-core-3.0.jar:%s/piccolo2d-extras-3.0.jar"
-      " com.google.scrollview.ScrollView";
+  const char* cmd_template = "-Djava.library.path=%s -jar %s/ScrollView.jar";
+
 #else
-  const char* cmd_template = "-c \"trap 'kill %%1' 0 1 2 ; java "
-      "-Xms1024m -Xmx2048m -Djava.library.path=%s -cp %s/ScrollView.jar:"
-      "%s/piccolo2d-core-3.0.jar:%s/piccolo2d-extras-3.0.jar"
-      " com.google.scrollview.ScrollView"
+  const char* cmd_template =
+      "-c \"trap 'kill %%1' 0 1 2 ; java "
+      "-Xms1024m -Xmx2048m -jar %s/ScrollView.jar"
       " & wait\"";
 #endif
   int cmdlen = strlen(cmd_template) + 4*strlen(scrollview_path.c_str()) + 1;
@@ -384,7 +387,6 @@ static int GetAddrInfo(const char* hostname, int port,
 
 // Set up a connection to a ScrollView on hostname:port.
 SVNetwork::SVNetwork(const char* hostname, int port) {
-  mutex_send_ = new SVMutex();
   msg_buffer_in_ = new char[kMaxMsgSize + 1];
   msg_buffer_in_[0] = '\0';
 
@@ -422,6 +424,7 @@ SVNetwork::SVNetwork(const char* hostname, int port) {
     // Wait for server to show up.
     // Note: There is no exception handling in case the server never turns up.
 
+    Close();
     stream_ = socket(addr_info->ai_family, addr_info->ai_socktype,
                    addr_info->ai_protocol);
 
@@ -434,6 +437,7 @@ SVNetwork::SVNetwork(const char* hostname, int port) {
       sleep(1);
 #endif
 
+      Close();
       stream_ = socket(addr_info->ai_family, addr_info->ai_socktype,
                    addr_info->ai_protocol);
     }
@@ -443,7 +447,6 @@ SVNetwork::SVNetwork(const char* hostname, int port) {
 
 SVNetwork::~SVNetwork() {
   delete[] msg_buffer_in_;
-  delete mutex_send_;
 }
 
 #endif  // GRAPHICS_DISABLED

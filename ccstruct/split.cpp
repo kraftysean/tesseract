@@ -1,7 +1,7 @@
 /* -*-C-*-
  ********************************************************************************
  *
- * File:        split.c  (Formerly split.c)
+ * File:         split.cpp  (Formerly split.c)
  * Description:
  * Author:       Mark Seaman, OCR Technology
  * Created:      Fri Oct 16 14:37:00 1987
@@ -225,10 +225,8 @@ void remove_edgept(EDGEPT *point) {
  * Shows the coordinates of both points in a split.
  **********************************************************************/
 void SPLIT::Print() const {
-  if (this != NULL) {
-    tprintf("(%d,%d)--(%d,%d)", point1->pos.x, point1->pos.y, point2->pos.x,
-            point2->pos.y);
-  }
+  tprintf("(%d,%d)--(%d,%d)", point1->pos.x, point1->pos.y, point2->pos.x,
+          point2->pos.y);
 }
 
 #ifndef GRAPHICS_DISABLED

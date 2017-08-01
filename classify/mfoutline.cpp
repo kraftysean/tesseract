@@ -35,7 +35,8 @@
 ----------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------*/
-/** Convert a blob into a list of MFOUTLINEs (float-based microfeature format). */
+/** Convert a blob into a list of MFOUTLINEs (float-based microfeature format).
+ */
 LIST ConvertBlob(TBLOB *blob) {
   LIST outlines = NIL_LIST;
   return (blob == NULL)
@@ -104,7 +105,7 @@ LIST ConvertOutlines(TESSLINE *outline,
 
 /*---------------------------------------------------------------------------*/
 /**
- * This routine searches thru the specified outline, computes
+ * This routine searches through the specified outline, computes
  * a slope for each vector in the outline, and marks each
  * vector as having one of the following directions:
  *   N, S, E, W, NE, NW, SE, SW
@@ -159,7 +160,7 @@ void FreeMFOutline(void *arg) {  //MFOUTLINE                             Outline
   Start = list_rest (Outline);
   set_rest(Outline, NIL_LIST);
   while (Start != NULL) {
-    free_struct (first_node (Start), sizeof (MFEDGEPT), "MFEDGEPT");
+    free(first_node(Start));
     Start = pop (Start);
   }
 
@@ -182,7 +183,7 @@ void FreeOutlines(LIST Outlines) {
 
 /*---------------------------------------------------------------------------*/
 /**
- * This routine searches thru the specified outline and finds
+ * This routine searches through the specified outline and finds
  * the points at which the outline changes direction.  These
  * points are then marked as "extremities".  This routine is
  * used as an alternative to FindExtremities().  It forces the
@@ -218,9 +219,8 @@ void MarkDirectionChanges(MFOUTLINE Outline) {
 /*---------------------------------------------------------------------------*/
 /** Return a new edge point for a micro-feature outline. */
 MFEDGEPT *NewEdgePoint() {
-  return ((MFEDGEPT *) alloc_struct(sizeof(MFEDGEPT), "MFEDGEPT"));
+  return reinterpret_cast<MFEDGEPT *>(malloc(sizeof(MFEDGEPT)));
 }
-
 
 /*---------------------------------------------------------------------------*/
 /**
@@ -344,7 +344,6 @@ void ChangeDirection(MFOUTLINE Start, MFOUTLINE End, DIRECTION Direction) {
 
 }                                /* ChangeDirection */
 
-
 /**
  * This routine normalizes each point in Outline by
  * translating it to the specified center and scaling it
@@ -377,7 +376,6 @@ void CharNormalizeOutline(MFOUTLINE Outline, const DENORM& cn_denorm) {
   while (Current != First);
 
 }                                /* CharNormalizeOutline */
-
 
 /**
  * This routine computes the slope from Start to Finish and

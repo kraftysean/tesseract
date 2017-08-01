@@ -21,9 +21,7 @@
 #include <cstdio>
 #include <string>
 
-#ifdef USE_STD_NAMESPACE
-using std::string;
-#endif
+#include "platform.h"
 
 namespace tesseract {
 
@@ -42,7 +40,6 @@ class File {
   // Return true if the file 'filename' is readable.
   static bool Readable(const string& filename);
 
-  static void ReadFileToStringOrDie(const string& filename, string* out);
   static bool ReadFileToString(const string& filename, string* out);
 
   // Helper methods

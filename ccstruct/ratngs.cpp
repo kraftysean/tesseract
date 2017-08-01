@@ -24,6 +24,7 @@
 
 #include "ratngs.h"
 
+#include <string>
 #include "blobs.h"
 #include "callcpp.h"
 #include "genericvector.h"
@@ -33,8 +34,8 @@
 
 using tesseract::ScriptPos;
 
-ELISTIZE(BLOB_CHOICE);
-ELISTIZE(WERD_CHOICE);
+ELISTIZE(BLOB_CHOICE)
+ELISTIZE(WERD_CHOICE)
 
 const float WERD_CHOICE::kBadRating = 100000.0;
 // Min offset in baseline-normalized coords to make a character a subscript.
@@ -112,7 +113,7 @@ BLOB_CHOICE::BLOB_CHOICE(UNICHAR_ID src_unichar_id, // character id
  *
  * Constructor to build a BLOB_CHOICE from another BLOB_CHOICE.
  */
-BLOB_CHOICE::BLOB_CHOICE(const BLOB_CHOICE &other) {
+BLOB_CHOICE::BLOB_CHOICE(const BLOB_CHOICE &other) : ELIST_LINK(other) {
   unichar_id_ = other.unichar_id();
   rating_ = other.rating();
   certainty_ = other.certainty();
@@ -200,10 +201,12 @@ WERD_CHOICE::WERD_CHOICE(const char *src_string,
     : unicharset_(&unicharset){
   GenericVector<UNICHAR_ID> encoding;
   GenericVector<char> lengths;
-  if (unicharset.encode_string(src_string, true, &encoding, &lengths, NULL)) {
+  string cleaned = unicharset.CleanupString(src_string);
+  if (unicharset.encode_string(cleaned.c_str(), true, &encoding, &lengths,
+                               NULL)) {
     lengths.push_back('\0');
     STRING src_lengths = &lengths[0];
-    this->init(src_string, src_lengths.string(), 0.0, 0.0, NO_PERM);
+    this->init(cleaned.c_str(), src_lengths.string(), 0.0, 0.0, NO_PERM);
   } else {  // There must have been an invalid unichar in the string.
     this->init(8);
     this->make_bad();

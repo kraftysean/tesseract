@@ -1,7 +1,7 @@
 /* -*-C-*-
  ********************************************************************************
  *
- * File:        pieces.c  (Formerly pieces.c)
+ * File:         pieces.cpp  (Formerly pieces.c)
  * Description:
  * Author:       Mark Seaman, OCR Technology
  * Created:      Fri Oct 16 14:37:00 1987
@@ -27,7 +27,6 @@
 ----------------------------------------------------------------------*/
 
 #include "blobs.h"
-#include "freelist.h"
 #include "helpers.h"
 #include "matrix.h"
 #include "ndminx.h"
@@ -76,16 +75,16 @@ BLOB_CHOICE_LIST *Wordrec::classify_piece(const GenericVector<SEAM*>& seams,
 
 template<class BLOB_CHOICE>
 int SortByUnicharID(const void *void1, const void *void2) {
-  const BLOB_CHOICE *p1 = *reinterpret_cast<const BLOB_CHOICE * const *>(void1);
-  const BLOB_CHOICE *p2 = *reinterpret_cast<const BLOB_CHOICE * const *>(void2);
+  const BLOB_CHOICE *p1 = *static_cast<const BLOB_CHOICE *const *>(void1);
+  const BLOB_CHOICE *p2 = *static_cast<const BLOB_CHOICE *const *>(void2);
 
   return p1->unichar_id() - p2->unichar_id();
 }
 
 template<class BLOB_CHOICE>
 int SortByRating(const void *void1, const void *void2) {
-  const BLOB_CHOICE *p1 = *reinterpret_cast<const BLOB_CHOICE * const *>(void1);
-  const BLOB_CHOICE *p2 = *reinterpret_cast<const BLOB_CHOICE * const *>(void2);
+  const BLOB_CHOICE *p1 = *static_cast<const BLOB_CHOICE *const *>(void1);
+  const BLOB_CHOICE *p2 = *static_cast<const BLOB_CHOICE *const *>(void2);
 
   if (p1->rating() < p2->rating())
     return 1;
@@ -267,13 +266,12 @@ void Wordrec::merge_and_put_fragment_lists(inT16 row, inT16 column,
   delete [] choice_lists_it;
 }
 
-
 /**********************************************************************
  * get_fragment_lists
  *
  * Recursively go through the ratings matrix to find lists of fragments
  * to be merged in the function merge_and_put_fragment_lists.
- * current_frag is the postion of the piece we are looking for.
+ * current_frag is the position of the piece we are looking for.
  * current_row is the row in the rating matrix we are currently at.
  * start is the row we started initially, so that we can know where
  * to append the results to the matrix. num_frag_parts is the total

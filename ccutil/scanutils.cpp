@@ -19,6 +19,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifdef HAVE_CONFIG_H
+#include "config_auto.h"
+#endif
+
 #include <ctype.h>
 #include <math.h>
 #include <stdarg.h>
@@ -32,11 +36,6 @@
 
 #include "scanutils.h"
 #include "tprintf.h"
-
-// workaround for "'off_t' was not declared in this scope" with -std=c++11
-#if !defined(off_t) && !defined(__APPLE__) && !defined(__CYGWIN__)
-typedef long off_t;
-#endif  // off_t
 
 enum Flags {
   FL_SPLAT  = 0x01,   // Drop the value, do not assign
@@ -282,7 +281,6 @@ static int tvfscanf(FILE* stream, const char *format, va_list ap) {
   } state = ST_NORMAL;
   char *sarg = NULL;    // %s %c or %[ string argument
   enum Bail bail = BAIL_NONE;
-  int sign;
   int converted = 0;    // Successful conversions
   unsigned long matchmap[((1 << CHAR_BIT)+(CHAR_BIT * sizeof(long) - 1)) /
       (CHAR_BIT * sizeof(long))];
@@ -364,29 +362,29 @@ static int tvfscanf(FILE* stream, const char *format, va_list ap) {
             case 'P':   // Upper case pointer
             case 'p':   // Pointer
               rank = RANK_PTR;
-              base = 0; sign = 0;
-            goto scan_int;
+              base = 0;
+              goto scan_int;
 
             case 'i':   // Base-independent integer
-              base = 0; sign = 1;
-            goto scan_int;
+              base = 0;
+              goto scan_int;
 
             case 'd':   // Decimal integer
-              base = 10; sign = 1;
-            goto scan_int;
+              base = 10;
+              goto scan_int;
 
             case 'o':   // Octal integer
-              base = 8; sign = 0;
-            goto scan_int;
+              base = 8;
+              goto scan_int;
 
             case 'u':   // Unsigned decimal integer
-              base = 10; sign = 0;
-            goto scan_int;
+              base = 10;
+              goto scan_int;
 
             case 'x':   // Hexadecimal integer
             case 'X':
-              base = 16; sign = 0;
-            goto scan_int;
+              base = 16;
+              goto scan_int;
 
             case 'n':   // Number of characters consumed
               val = ftell(stream) - start_off;

@@ -18,12 +18,13 @@
 //
 ///////////////////////////////////////////////////////////////////////
 
-#ifndef TESSERACT_TEXTORD_BBGRID_H__
-#define TESSERACT_TEXTORD_BBGRID_H__
+#ifndef TESSERACT_TEXTORD_BBGRID_H_
+#define TESSERACT_TEXTORD_BBGRID_H_
+
+#include <unordered_set>
 
 #include "clst.h"
 #include "coutln.h"
-#include "hashfn.h"
 #include "rect.h"
 #include "scrollview.h"
 
@@ -127,7 +128,7 @@ class IntGrid : public GridBase {
     grid_[grid_y * gridwidth_ + grid_x] = value;
   }
   // Returns true if more than half the area of the rect is covered by grid
-  // cells that are over the theshold.
+  // cells that are over the threshold.
   bool RectMostlyOverThreshold(const TBOX& rect, int threshold) const;
 
   // Returns true if any cell value in the given rectangle is zero.
@@ -292,7 +293,7 @@ template<class BBC, class BBC_CLIST, class BBC_C_IT> class GridSearch {
   // Return the next bbox in the search or NULL if done.
   BBC* NextFullSearch();
 
-  // Start a new radius search. Will search in a spiral upto a
+  // Start a new radius search. Will search in a spiral up to a
   // given maximum radius in grid cells from the given center in pixels.
   void StartRadSearch(int x, int y, int max_radius);
   // Return the next bbox in the radius search or NULL if the
@@ -364,15 +365,15 @@ template<class BBC, class BBC_CLIST, class BBC_C_IT> class GridSearch {
   // An iterator over the list at (x_, y_) in the grid_.
   BBC_C_IT it_;
   // Set of unique returned elements used when unique_mode_ is true.
-  unordered_set<BBC*, PtrHash<BBC> > returns_;
+  std::unordered_set<BBC*, PtrHash<BBC> > returns_;
 };
 
 // Sort function to sort a BBC by bounding_box().left().
 template<class BBC>
 int SortByBoxLeft(const void* void1, const void* void2) {
   // The void*s are actually doubly indirected, so get rid of one level.
-  const BBC* p1 = *reinterpret_cast<const BBC* const *>(void1);
-  const BBC* p2 = *reinterpret_cast<const BBC* const *>(void2);
+  const BBC* p1 = *static_cast<const BBC* const*>(void1);
+  const BBC* p2 = *static_cast<const BBC* const*>(void2);
   int result = p1->bounding_box().left() - p2->bounding_box().left();
   if (result != 0)
     return result;
@@ -389,8 +390,8 @@ int SortByBoxLeft(const void* void1, const void* void2) {
 template<class BBC>
 int SortRightToLeft(const void* void1, const void* void2) {
   // The void*s are actually doubly indirected, so get rid of one level.
-  const BBC* p1 = *reinterpret_cast<const BBC* const *>(void1);
-  const BBC* p2 = *reinterpret_cast<const BBC* const *>(void2);
+  const BBC* p1 = *static_cast<const BBC* const*>(void1);
+  const BBC* p2 = *static_cast<const BBC* const*>(void2);
   int result = p2->bounding_box().right() - p1->bounding_box().right();
   if (result != 0)
     return result;
@@ -407,8 +408,8 @@ int SortRightToLeft(const void* void1, const void* void2) {
 template<class BBC>
 int SortByBoxBottom(const void* void1, const void* void2) {
   // The void*s are actually doubly indirected, so get rid of one level.
-  const BBC* p1 = *reinterpret_cast<const BBC* const *>(void1);
-  const BBC* p2 = *reinterpret_cast<const BBC* const *>(void2);
+  const BBC* p1 = *static_cast<const BBC* const*>(void1);
+  const BBC* p2 = *static_cast<const BBC* const*>(void2);
   int result = p1->bounding_box().bottom() - p2->bounding_box().bottom();
   if (result != 0)
     return result;
@@ -623,7 +624,7 @@ void BBGrid<BBC, BBC_CLIST, BBC_C_IT>::DisplayBoxes(ScrollView* tab_win) {
   gsearch.StartFullSearch();
   BBC* bbox;
   while ((bbox = gsearch.NextFullSearch()) != NULL) {
-    TBOX box = bbox->bounding_box();
+    const TBOX& box = bbox->bounding_box();
     int left_x = box.left();
     int right_x = box.right();
     int top_y = box.top();
@@ -750,7 +751,7 @@ void GridSearch<BBC, BBC_CLIST, BBC_C_IT>::StartSideSearch(int x,
                                                            int ymin, int ymax) {
   // Right search records the x in x_origin_, the ymax in y_origin_
   // and the size of the vertical strip to search in radius_.
-  // To guarantee finding overlapping objects of upto twice the
+  // To guarantee finding overlapping objects of up to twice the
   // given size, double the height.
   radius_ = ((ymax - ymin) * 2 + grid_->gridsize_ - 1) / grid_->gridsize_;
   rad_index_ = 0;
@@ -958,4 +959,4 @@ void GridSearch<BBC, BBC_CLIST, BBC_C_IT>::SetIterator() {
 
 }  // namespace tesseract.
 
-#endif  // TESSERACT_TEXTORD_BBGRID_H__
+#endif  // TESSERACT_TEXTORD_BBGRID_H_

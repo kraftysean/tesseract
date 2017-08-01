@@ -1,9 +1,26 @@
-// Include automatically generated configuration file if running autoconf.
+///////////////////////////////////////////////////////////////////////
+// File:        renderer.cpp
+// Description: Rendering interface to inject into TessBaseAPI
+//
+// (C) Copyright 2011, Google Inc.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+///////////////////////////////////////////////////////////////////////
+
 #ifdef HAVE_CONFIG_H
 #include "config_auto.h"
 #endif
 
 #include <string.h>
+#include <memory>  // std::unique_ptr
 #include "baseapi.h"
 #include "genericvector.h"
 #include "renderer.h"
@@ -30,10 +47,12 @@ TessResultRenderer::TessResultRenderer(const char *outputbase,
 }
 
 TessResultRenderer::~TessResultRenderer() {
- if (fout_ != stdout)
-    fclose(fout_);
-  else
-    clearerr(fout_);
+  if (fout_ != nullptr) {
+    if (fout_ != stdout)
+      fclose(fout_);
+    else
+      clearerr(fout_);
+  }
   delete next_;
 }
 
@@ -106,13 +125,12 @@ TessTextRenderer::TessTextRenderer(const char *outputbase)
 }
 
 bool TessTextRenderer::AddImageHandler(TessBaseAPI* api) {
-  char* utf8 = api->GetUTF8Text();
+  const std::unique_ptr<const char[]> utf8(api->GetUTF8Text());
   if (utf8 == NULL) {
     return false;
   }
 
-  AppendString(utf8);
-  delete[] utf8;
+  AppendString(utf8.get());
 
   bool pageBreak = false;
   api->GetBoolVariable("include_page_breaks", &pageBreak);
@@ -139,11 +157,11 @@ TessHOcrRenderer::TessHOcrRenderer(const char *outputbase, bool font_info)
 
 bool TessHOcrRenderer::BeginDocumentHandler() {
   AppendString(
-        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-        "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\"\n"
-        "    \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\n"
-        "<html xmlns=\"http://www.w3.org/1999/xhtml\" xml:lang=\"en\" "
-        "lang=\"en\">\n <head>\n  <title>");
+      "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+      "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\"\n"
+      "    \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\n"
+      "<html xmlns=\"http://www.w3.org/1999/xhtml\" xml:lang=\"en\" "
+      "lang=\"en\">\n <head>\n  <title>");
   AppendString(title());
   AppendString(
       "</title>\n"
@@ -170,11 +188,42 @@ bool TessHOcrRenderer::EndDocumentHandler() {
 }
 
 bool TessHOcrRenderer::AddImageHandler(TessBaseAPI* api) {
-  char* hocr = api->GetHOCRText(imagenum());
+  const std::unique_ptr<const char[]> hocr(api->GetHOCRText(imagenum()));
   if (hocr == NULL) return false;
 
-  AppendString(hocr);
-  delete[] hocr;
+  AppendString(hocr.get());
+
+  return true;
+}
+
+/**********************************************************************
+ * TSV Text Renderer interface implementation
+ **********************************************************************/
+TessTsvRenderer::TessTsvRenderer(const char* outputbase)
+    : TessResultRenderer(outputbase, "tsv") {
+  font_info_ = false;
+}
+
+TessTsvRenderer::TessTsvRenderer(const char* outputbase, bool font_info)
+    : TessResultRenderer(outputbase, "tsv") {
+  font_info_ = font_info;
+}
+
+bool TessTsvRenderer::BeginDocumentHandler() {
+  // Output TSV column headings
+  AppendString(
+      "level\tpage_num\tblock_num\tpar_num\tline_num\tword_"
+      "num\tleft\ttop\twidth\theight\tconf\ttext\n");
+  return true;
+}
+
+bool TessTsvRenderer::EndDocumentHandler() { return true; }
+
+bool TessTsvRenderer::AddImageHandler(TessBaseAPI* api) {
+  const std::unique_ptr<const char[]> tsv(api->GetTSVText(imagenum()));
+  if (tsv == NULL) return false;
+
+  AppendString(tsv.get());
 
   return true;
 }
@@ -187,11 +236,10 @@ TessUnlvRenderer::TessUnlvRenderer(const char *outputbase)
 }
 
 bool TessUnlvRenderer::AddImageHandler(TessBaseAPI* api) {
-  char* unlv = api->GetUNLVText();
+  const std::unique_ptr<const char[]> unlv(api->GetUNLVText());
   if (unlv == NULL) return false;
 
-  AppendString(unlv);
-  delete[] unlv;
+  AppendString(unlv.get());
 
   return true;
 }
@@ -204,11 +252,26 @@ TessBoxTextRenderer::TessBoxTextRenderer(const char *outputbase)
 }
 
 bool TessBoxTextRenderer::AddImageHandler(TessBaseAPI* api) {
-  char* text = api->GetBoxText(imagenum());
+  const std::unique_ptr<const char[]> text(api->GetBoxText(imagenum()));
   if (text == NULL) return false;
 
-  AppendString(text);
-  delete[] text;
+  AppendString(text.get());
+
+  return true;
+}
+
+/**********************************************************************
+ * Osd Text Renderer interface implementation
+ **********************************************************************/
+TessOsdRenderer::TessOsdRenderer(const char* outputbase)
+    : TessResultRenderer(outputbase, "osd") {}
+
+bool TessOsdRenderer::AddImageHandler(TessBaseAPI* api) {
+  char* osd = api->GetOsdText(imagenum());
+  if (osd == NULL) return false;
+
+  AppendString(osd);
+  delete[] osd;
 
   return true;
 }

@@ -36,31 +36,36 @@ SCROLLVIEW_CLASSES = \
 	com/google/scrollview/ScrollView.class
 
 SCROLLVIEW_LIBS = \
-	$(srcdir)/piccolo2d-core-3.0.jar \
-	$(srcdir)/piccolo2d-extras-3.0.jar
+	piccolo2d-core-3.0.jar \
+	piccolo2d-extras-3.0.jar
 
-CLASSPATH = $(srcdir)/piccolo2d-core-3.0.jar:$(srcdir)/piccolo2d-extras-3.0.jar
+CLASSPATH = piccolo2d-core-3.0.jar:piccolo2d-extras-3.0.jar
 
 ScrollView.jar : $(SCROLLVIEW_CLASSES)
-	$(JAR) cf $@ com/google/scrollview/*.class \
+	$(JAR) cfm $@ $(srcdir)/Manifest.txt com/google/scrollview/*.class \
            com/google/scrollview/events/*.class com/google/scrollview/ui/*.class
 
-$(SCROLLVIEW_CLASSES) : $(SCROLLVIEW_FILES)
+$(SCROLLVIEW_CLASSES) : $(SCROLLVIEW_FILES) $(SCROLLVIEW_LIBS)
 	$(JAVAC) -encoding UTF8 -sourcepath $(srcdir) -classpath $(CLASSPATH) $(SCROLLVIEW_FILES) -d $(builddir)
+
+.PHONY: fetch-jars
+fetch-jars $(SCROLLVIEW_LIBS):
+	curl -L http://search.maven.org/remotecontent?filepath=org/piccolo2d/piccolo2d-core/3.0/piccolo2d-core-3.0.jar > piccolo2d-core-3.0.jar
+	curl -L http://search.maven.org/remotecontent?filepath=org/piccolo2d/piccolo2d-extras/3.0/piccolo2d-extras-3.0.jar > piccolo2d-extras-3.0.jar
 
 .PHONY: install-jars
 install-jars : ScrollView.jar
 	@if [ ! -d  $(scrollview_path) ]; then mkdir -p $(scrollview_path); fi;
 	$(INSTALL) -m 644 $(SCROLLVIEW_LIBS) $(scrollview_path);
 	$(INSTALL) -m 644 ScrollView.jar $(scrollview_path);
-	@echo "Don't forget to set eviroment variable SCROLLVIEW_PATH to $(scrollview_path)";
+	@echo "Don't forget to set environment variable SCROLLVIEW_PATH to $(scrollview_path)";
 
 uninstall:
 	rm -f $(scrollview_path)/*.jar
 endif
 
-clean :
-	rm -f ScrollView.jar *.class $(srcdir)/*.class
+clean-local:
+	rm -f ScrollView.jar $(SCROLLVIEW_CLASSES)
 
 # all-am does nothing, to make the java part optional.
 all all-am install :

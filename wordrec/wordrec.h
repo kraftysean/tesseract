@@ -16,8 +16,8 @@
 //
 ///////////////////////////////////////////////////////////////////////
 
-#ifndef TESSERACT_WORDREC_WORDREC_H__
-#define TESSERACT_WORDREC_WORDREC_H__
+#ifndef TESSERACT_WORDREC_WORDREC_H_
+#define TESSERACT_WORDREC_WORDREC_H_
 
 #include "associate.h"
 #include "classify.h"
@@ -200,9 +200,8 @@ class Wordrec : public Classify {
   }
 
   // tface.cpp
-  void program_editup(const char *textbase,
-                      bool init_classifier,
-                      bool init_permute);
+  void program_editup(const char *textbase, TessdataManager *init_classifier,
+                      TessdataManager *init_dict);
   void cc_recog(WERD_RES *word);
   void program_editdown(inT32 elasped_time);
   void set_pass1();
@@ -271,9 +270,6 @@ class Wordrec : public Classify {
   void SegSearch(WERD_RES* word_res,
                  BestChoiceBundle* best_choice_bundle,
                  BlamerBundle* blamer_bundle);
-  // Setup and run just the initial segsearch on an established matrix,
-  // without doing any additional chopping or joining.
-  void WordSearch(WERD_RES* word_res);
 
   // Setup and run just the initial segsearch on an established matrix,
   // without doing any additional chopping or joining.
@@ -375,7 +371,7 @@ class Wordrec : public Classify {
                        inT16 num_blobs);
   // Recursively go through the ratings matrix to find lists of fragments
   // to be merged in the function merge_and_put_fragment_lists.
-  // current_frag is the postion of the piece we are looking for.
+  // current_frag is the position of the piece we are looking for.
   // current_row is the row in the rating matrix we are currently at.
   // start is the row we started initially, so that we can know where
   // to append the results to the matrix. num_frag_parts is the total
@@ -491,4 +487,4 @@ class Wordrec : public Classify {
 
 }  // namespace tesseract
 
-#endif  // TESSERACT_WORDREC_WORDREC_H__
+#endif  // TESSERACT_WORDREC_WORDREC_H_

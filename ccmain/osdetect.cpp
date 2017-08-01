@@ -39,7 +39,6 @@ const int kMaxCharactersToTry = 5 * kMinCharactersToTry;
 const float kSizeRatioToReject = 2.0;
 const int kMinAcceptableBlobHeight = 10;
 
-const float kOrientationAcceptRatio = 1.3;
 const float kScriptAcceptRatio = 1.3;
 
 const float kHanRatioInKorean = 0.7;
@@ -61,8 +60,6 @@ const char* ScriptDetector::fraktur_script_ = "Fraktur";
 
 // Minimum believable resolution.
 const int kMinCredibleResolution = 70;
-// Default resolution used if input is not believable.
-const int kDefaultResolution = 300;
 
 void OSResults::update_best_orientation() {
   float first = orientations[0];
@@ -167,14 +164,19 @@ void remove_nontext_regions(tesseract::Tesseract *tess, BLOCK_LIST *blocks,
   int vertical_y = 1;
   tesseract::TabVector_LIST v_lines;
   tesseract::TabVector_LIST h_lines;
-  const int kMinCredibleResolution = 70;
-  int resolution = (kMinCredibleResolution > pixGetXRes(pix)) ?
-      kMinCredibleResolution : pixGetXRes(pix);
+  int resolution;
+  if (kMinCredibleResolution > pixGetXRes(pix)) {
+    resolution = kMinCredibleResolution;
+    tprintf("Warning. Invalid resolution %d dpi. Using %d instead.\n",
+            pixGetXRes(pix), resolution);
+  } else {
+    resolution = pixGetXRes(pix);
+  }
 
   tesseract::LineFinder::FindAndRemoveLines(resolution, false, pix,
                                             &vertical_x, &vertical_y,
                                             NULL, &v_lines, &h_lines);
-  Pix* im_pix = tesseract::ImageFind::FindImages(pix);
+  Pix* im_pix = tesseract::ImageFind::FindImages(pix, nullptr);
   if (im_pix != NULL) {
     pixSubtract(pix, pix, im_pix);
     pixDestroy(&im_pix);
@@ -560,7 +562,7 @@ bool ScriptDetector::must_stop(int orientation) {
 // Helper method to convert an orientation index to its value in degrees.
 // The value represents the amount of clockwise rotation in degrees that must be
 // applied for the text to be upright (readable).
-const int OrientationIdToValue(const int& id) {
+int OrientationIdToValue(const int& id) {
   switch (id) {
     case 0:
       return 0;

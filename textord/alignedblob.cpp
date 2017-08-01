@@ -30,7 +30,6 @@ INT_VAR(textord_testregion_left, -1, "Left edge of debug reporting rectangle");
 INT_VAR(textord_testregion_top, -1, "Top edge of debug reporting rectangle");
 INT_VAR(textord_testregion_right, MAX_INT32, "Right edge of debug rectangle");
 INT_VAR(textord_testregion_bottom, MAX_INT32, "Bottom edge of debug rectangle");
-BOOL_VAR(textord_debug_images, false, "Use greyed image background for debug");
 BOOL_VAR(textord_debug_printable, false, "Make debug windows printable");
 
 namespace tesseract {
@@ -63,25 +62,6 @@ const double kMinTabGradient = 4.0;
 // by kMaxSkewFactor to get the y or x skew distance.
 // If the angle is small, the angle in degrees is roughly 60/kMaxSkewFactor.
 const int kMaxSkewFactor = 15;
-
-// Constant part of textord_debug_pix_.
-const char* kTextordDebugPix = "psdebug_pix";
-
-// Name of image file to use if textord_debug_images is true.
-STRING AlignedBlob::textord_debug_pix_ = kTextordDebugPix;
-// Index to image file to use if textord_debug_images is true.
-int AlignedBlob::debug_pix_index_ = 0;
-
-// Increment the serial number counter and set the string to use
-// for a filename if textord_debug_images is true.
-void AlignedBlob::IncrementDebugPix() {
-  ++debug_pix_index_;
-  textord_debug_pix_ = kTextordDebugPix;
-  char numbuf[32];
-  snprintf(numbuf, sizeof(numbuf), "%d", debug_pix_index_);
-  textord_debug_pix_ += numbuf;
-  textord_debug_pix_ += ".pix";
-}
 
 // Constructor to set the parameters for finding aligned and ragged tabs.
 // Vertical_x and vertical_y are the current estimates of the true vertical
@@ -188,7 +168,7 @@ ScrollView* AlignedBlob::DisplayTabs(const char* window_name,
   gsearch.StartFullSearch();
   BLOBNBOX* bbox;
   while ((bbox = gsearch.NextFullSearch()) != NULL) {
-    TBOX box = bbox->bounding_box();
+    const TBOX& box = bbox->bounding_box();
     int left_x = box.left();
     int right_x = box.right();
     int top_y = box.top();
@@ -402,7 +382,7 @@ BLOBNBOX* AlignedBlob::FindAlignedBlob(const AlignedBlobParams& p,
   // Compute skew tolerance.
   int skew_tolerance = p.max_v_gap / kMaxSkewFactor;
   // Calculate xmin and xmax of the search box so that it contains
-  // all possibly relevant boxes upto p.max_v_gap above or below accoording
+  // all possibly relevant boxes up to p.max_v_gap above or below accoording
   // to top_to_bottom.
   // Start with a notion of vertical with the current estimate.
   int x2 = (p.max_v_gap * p.vertical.x() + p.vertical.y()/2) / p.vertical.y();
@@ -502,7 +482,7 @@ BLOBNBOX* AlignedBlob::FindAlignedBlob(const AlignedBlobParams& p,
     }
     if ((p.right_tab && neighbour->leader_on_right()) ||
         (!p.right_tab && neighbour->leader_on_left()))
-      continue;  // Neigbours of leaders are not allowed to be used.
+      continue;  // Neighbours of leaders are not allowed to be used.
     if (n_x <= x_at_n_y + p.r_align_tolerance &&
         n_x >= x_at_n_y - p.l_align_tolerance) {
       // Aligned so keep it. If it is a marked tab save it as result,

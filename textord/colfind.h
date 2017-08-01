@@ -17,14 +17,15 @@
 //
 ///////////////////////////////////////////////////////////////////////
 
-#ifndef TESSERACT_TEXTORD_COLFIND_H__
-#define TESSERACT_TEXTORD_COLFIND_H__
+#ifndef TESSERACT_TEXTORD_COLFIND_H_
+#define TESSERACT_TEXTORD_COLFIND_H_
 
-#include "tabfind.h"
-#include "imagefind.h"
 #include "colpartitiongrid.h"
 #include "colpartitionset.h"
+#include "debugpixa.h"
+#include "imagefind.h"
 #include "ocrblock.h"
+#include "tabfind.h"
 #include "textlineprojection.h"
 
 class BLOCK_LIST;
@@ -163,7 +164,7 @@ class ColumnFinder : public TabFind {
   // in debug mode, which requests a retry with more debug info.
   int FindBlocks(PageSegMode pageseg_mode, Pix* scaled_color, int scaled_factor,
                  TO_BLOCK* block, Pix* photo_mask_pix, Pix* thresholds_pix,
-                 Pix* grey_pix, BLOCK_LIST* blocks,
+                 Pix* grey_pix, DebugPixa* pixa_debug, BLOCK_LIST* blocks,
                  BLOBNBOX_LIST* diacritic_blobs, TO_BLOCK_LIST* to_blocks);
 
   // Get the rotation required to deskew, and its inverse rotation.
@@ -212,7 +213,7 @@ class ColumnFinder : public TabFind {
                                const bool* any_columns_possible,
                                int column_set_id,
                                int* best_start, int* best_end);
-  // Moves start in the direction of step, upto, but not including end while
+  // Moves start in the direction of step, up to, but not including end while
   // the only incompatible regions are no more than kMaxIncompatibleColumnCount
   // in size, and the compatible regions beyond are bigger.
   void ExtendRangePastSmallGaps(int** column_set_costs,
@@ -365,4 +366,4 @@ class ColumnFinder : public TabFind {
 
 }  // namespace tesseract.
 
-#endif  // TESSERACT_TEXTORD_COLFIND_H__
+#endif  // TESSERACT_TEXTORD_COLFIND_H_

@@ -1,8 +1,8 @@
 /**********************************************************************
- * File:        statistc.c  (Formerly stats.c)
+ * File:        statistc.cpp  (Formerly stats.c)
  * Description: Simple statistical package for integer values.
- * Author:					Ray Smith
- * Created:					Mon Feb 04 16:56:05 GMT 1991
+ * Author:          Ray Smith
+ * Created:         Mon Feb 04 16:56:05 GMT 1991
  *
  * (C) Copyright 1991, Hewlett-Packard Ltd.
  ** Licensed under the Apache License, Version 2.0 (the "License");
@@ -89,12 +89,7 @@ void STATS::clear() {  // clear out buckets
  *
  * Destructor for a stats class.
  **********************************************************************/
-STATS::~STATS () {
-  if (buckets_ != NULL) {
-    delete [] buckets_;
-    buckets_ = NULL;
-  }
-}
+STATS::~STATS() { delete[] buckets_; }
 
 /**********************************************************************
  * STATS::add
@@ -204,7 +199,7 @@ double STATS::ile(double frac) const {
 /**********************************************************************
  * STATS::min_bucket
  *
- * Find REAL minimum bucket - ile(0.0) isnt necessarily correct
+ * Find REAL minimum bucket - ile(0.0) isn't necessarily correct
  **********************************************************************/
 inT32 STATS::min_bucket() const {  // Find min
   if (buckets_ == NULL || total_count_ == 0) {
@@ -215,11 +210,10 @@ inT32 STATS::min_bucket() const {  // Find min
   return rangemin_ + min;
 }
 
-
 /**********************************************************************
  * STATS::max_bucket
  *
- * Find REAL maximum bucket - ile(1.0) isnt necessarily correct
+ * Find REAL maximum bucket - ile(1.0) isn't necessarily correct
  **********************************************************************/
 
 inT32 STATS::max_bucket() const {  // Find max
@@ -249,7 +243,7 @@ double STATS::median() const {  //get median
   if ((total_count_ > 1) && (pile_count(median_pile) == 0)) {
     inT32 min_pile;
     inT32 max_pile;
-    /* Find preceeding non zero pile */
+    /* Find preceding non zero pile */
     for (min_pile = median_pile; pile_count(min_pile) == 0; min_pile--);
     /* Find following non zero pile */
     for (max_pile = median_pile; pile_count(max_pile) == 0; max_pile++);
@@ -776,8 +770,8 @@ void swap_entries(void *array,   // array of entries
   char *ptr2;
   size_t count;                  // of bytes
 
-  ptr1 = reinterpret_cast<char*>(array) + index1 * size;
-  ptr2 = reinterpret_cast<char*>(array) + index2 * size;
+  ptr1 = static_cast<char *>(array) + index1 * size;
+  ptr2 = static_cast<char *>(array) + index2 * size;
   for (count = 0; count < size; count++) {
     tmp = *ptr1;
     *ptr1++ = *ptr2;
